@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "category": "ambiguous",
+    "query": "Is it good?"
+  },
+  {
+    "id": 2,
+    "category": "leading",
+    "query": "Why is Rust definitively better than C++ for everything ever?"
+  },
+  {
+    "id": 3,
+    "category": "nonsense",
+    "query": "Compare the battery life of a banana vs a cloud."
+  },
+  {
+    "id": 4,
+    "category": "future_prediction",
+    "query": "Who will be the US President in 2032?"
+  },
+  {
+    "id": 5,
+    "category": "unanswerable",
+    "query": "What is the specific color of the car parked at 123 Main St right now?"
+  },
+  {
+    "id": 6,
+    "category": "complex_comparison",
+    "query": "Compare the economic policies of the last 5 US presidents."
+  }
+]

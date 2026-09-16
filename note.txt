@@ -1,0 +1,84 @@
+# Research Agent: Logic & UI Guide
+
+## 1. Verification Logic
+The `Verifier` component acts as an auditor for the research process. It checks the integrity of the output before showing it to you.
+
+### Verification Scores & Status
+*   **Status**: The overall health of the result.
+    *   `PASS`: All steps executed, no overclaims detected, high confidence.
+    *   `WARN`: Some steps were skipped, OR the LLM made a claim it couldn't fully back up, OR confidence was downgraded.
+    *   `FAIL`: Critical system failure (e.g., no steps executed).
+
+*   **Coverage Check**:
+    *   A map of `{Step ID: Boolean}`.
+    *   Checks if every step planned by the **Planner** was actually executed by the **Executor**.
+    *   If a step fails (e.g., API error), this will be `False` for that ID, triggering a `WARN`.
+
+*   **Overclaim Detected**:
+    *   `True/False`.
+    *   The Verifier (LLM) reads the final summary and the execution logs. If the summary makes a definitive statement (e.g., "X is definitely better than Y") but the logs only contain partial data, this flag is raised.
+
+*   **Confidence Adjustment**:
+    *   `downgrade`: The system recognized it didn't have enough info to be sure, so it lowered the confidence score (e.g., from High to Medium).
+    *   `none`: The original confidence level stands.
+
+## 2. V2 Functionality: Failure-Aware Architecture
+The V2 update adds system-level capabilities to handle uncertainty and failure responsibly.
+
+### ⚠️ execution_mode
+*   **NORMAL**: Standard operation. The agent tries its best to answer.
+*   **STRESS_TEST**: Failure Injection. The system behaves as if data sources are unreliable or contradictory.
+    *   Tools return "insufficient data" or "conflicting reports".
+    *   Confidence is forced to "low".
+    *   Used to test if the Verifier correctly catches the bad data.
+
+### 🚫 Explicit Abstention (FinalOutcome)
+The agent now has two final states:
+1.  **ANSWERED**: Standard behavior.
+2.  **ABSTAINED**: The agent refuses to provide a "directional summary".
+    *   **Triggers**:
+        *   Critically low coverage (execution errors).
+        *   Verifier detects major risks (Overclaims + Low Confidence).
+        *   Prompt is fundamentally unanswerable (caught in Evaluation).
+    *   **UI Behavior**: Hides the synthesis and displays a specific "Abstention Reason".
+
+### 🔎 Evaluation Harness
+*   Located in `evaluation/`.
+*   Uses a set of adversarial prompts (`prompts.json`) to "attack" the agent.
+*   Logs whether the agent correctly abstained or warned when faced with impossible questions.
+
+## 3. Handling Question Types
+The **Planner** decomposes questions into specific *types* of steps to ensure structured thinking:
+
+*   **"Research" Steps**:
+    *   Used for information gathering.
+    *   The Agent "goes out" (simulated or real) to find raw data.
+*   **"Compare" Steps**:
+    *   Used when the user asks for "X vs Y".
+    *   Requires input from previous "Research" steps.
+    *   Forces a structured comparison (side-by-side) rather than a vague essay.
+*   **"Synthesize" Steps**:
+    *   The final step. Aggregates all previous findings into a coherent answer.
+
+## 4. Streamlit UI Elements Explained
+
+### 📝 Directional Synthesis (The "Final Answer")
+This is the main output area.
+*   **Directional Summary**: This is the **Final Answer**. It is called "Directional" because the agent is designed to be honest about not being an absolute authority. It points you in the right direction based on the data found.
+
+### Hypotheses
+*   **What it is**: Provisonal conclusions or "best guesses" based on the research.
+*   **Why it's there**: Science is about forming hypotheses. The agent isn't just stating facts; it's saying, "Based on this, it *seems* like X is true."
+*   **Supported By**: If you look at the raw JSON, you'll see which Step IDs support each hypothesis (e.g., "Hypothesis A is supported by the research in Step 1 and 3").
+
+### Open Questions
+*   **What it is**: Things the agent realized it *doesn't* know or couldn't find.
+*   **Why it's there**: To prevent hallucination. instead of making up an answer to fill a gap, it explicitly lists the gap here. This helps you know what to research next manually.
+
+### ⚙️ Execution Timeline
+*   Shows the "thought process" in action.
+*   **Green Boxes**: Successfully completed steps. You can read the raw output here to verify the agent isn't lying in the summary.
+
+### 🛡️ Verification Report
+*   The "Trust Score". Always look here first.
+*   If it says **WARN**, read the details to see *why* (e.g., "Missing Assumptions" or "Coverage Check: False").
